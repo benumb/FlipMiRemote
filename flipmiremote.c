@@ -1,7 +1,7 @@
 /*
  * FlipMiRemote - BLE remote compatibility tester for Xiaomi Mi Box / Android TV
  *
- * V0.5: Xiaomi-name BLE discovery probes.
+ * V0.5.1: Xiaomi-name BLE discovery probes + visible timer.
  *
  * GPL-2.0
  */
@@ -108,6 +108,8 @@ typedef struct {
     volatile bool connected;
     bool mode_active;
     uint8_t selected_mode;
+    uint32_t mode_started_tick;
+    uint32_t last_display_second;
 } FlipMiRemoteApp;
 
 static void flipmiremote_draw_callback(Canvas* canvas, void* context) {
@@ -117,7 +119,7 @@ static void flipmiremote_draw_callback(Canvas* canvas, void* context) {
 
     if(!app->mode_active) {
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str(canvas, 2, 10, "FlipMiRemote V0.5");
+        canvas_draw_str(canvas, 2, 10, "FlipMiRemote V0.5.1");
 
         canvas_set_font(canvas, FontSecondary);
         const uint8_t visible = 5;
@@ -141,8 +143,18 @@ static void flipmiremote_draw_callback(Canvas* canvas, void* context) {
         canvas_draw_str(canvas, 2, 25, mode->label);
         canvas_draw_str(canvas, 2, 38, mode->profile.name);
         canvas_draw_str(
-            canvas, 2, 51, app->connected ? "Status: CONNECTED" : "Status: advertising");
-        canvas_draw_str(canvas, 2, 63, "BACK = modes");
+            canvas, 2, 49, app->connected ? "Status: CONNECTED" : "Status: advertising");
+
+        uint32_t elapsed = 0;
+        if(app->mode_started_tick) {
+            elapsed =
+                (furi_get_tick() - app->mode_started_tick) / furi_kernel_get_tick_frequency();
+        }
+
+        char timer[20];
+        snprintf(timer, sizeof(timer), "Time: %02lu:%02lu", elapsed / 60, elapsed % 60);
+        canvas_draw_str(canvas, 2, 59, timer);
+        canvas_draw_str(canvas, 88, 59, "BACK");
     }
 }
 
@@ -177,6 +189,8 @@ static bool flipmiremote_start_mode(FlipMiRemoteApp* app) {
 
     bt_set_status_changed_callback(app->bt, flipmiremote_bt_status_callback, app);
     furi_hal_bt_start_advertising();
+    app->mode_started_tick = furi_get_tick();
+    app->last_display_second = 0;
     app->mode_active = true;
 
     FURI_LOG_I(TAG, "Started mode %u: %s", app->selected_mode, mode->profile.name);
@@ -196,6 +210,8 @@ static void flipmiremote_stop_mode(FlipMiRemoteApp* app) {
 
     app->ble_hid_profile = NULL;
     app->connected = false;
+    app->mode_started_tick = 0;
+    app->last_display_second = 0;
     app->mode_active = false;
     view_port_update(app->view_port);
 }
@@ -219,7 +235,18 @@ int32_t flipmiremote_app(void* p) {
     bool running = true;
 
     while(running) {
-        if(furi_message_queue_get(app->input_queue, &event, 100) != FuriStatusOk) continue;
+        FuriStatus queue_status = furi_message_queue_get(app->input_queue, &event, 100);
+
+        if(app->mode_active && app->mode_started_tick) {
+            uint32_t elapsed =
+                (furi_get_tick() - app->mode_started_tick) / furi_kernel_get_tick_frequency();
+            if(elapsed != app->last_display_second) {
+                app->last_display_second = elapsed;
+                view_port_update(app->view_port);
+            }
+        }
+
+        if(queue_status != FuriStatusOk) continue;
         if(event.type != InputTypePress) continue;
 
         if(!app->mode_active) {
