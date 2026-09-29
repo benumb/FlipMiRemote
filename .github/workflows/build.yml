@@ -1,0 +1,46 @@
+name: Build FlipMiRemote
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout FlipMiRemote
+        uses: actions/checkout@v4
+        with:
+          path: FlipMiRemote
+
+      - name: Checkout Momentum firmware
+        uses: actions/checkout@v4
+        with:
+          repository: Next-Flip/Momentum-Firmware
+          ref: dev
+          submodules: recursive
+          path: Momentum-Firmware
+
+      - name: Add app to Momentum
+        run: |
+          ln -s "$GITHUB_WORKSPACE/FlipMiRemote" "$GITHUB_WORKSPACE/Momentum-Firmware/applications_user/flipmiremote"
+
+      - name: Build FAP
+        working-directory: Momentum-Firmware
+        run: |
+          ./fbt fap_flipmiremote
+
+      - name: Collect FAP
+        run: |
+          mkdir -p dist
+          find Momentum-Firmware/build -type f -name "flipmiremote.fap" -print -exec cp {} dist/ \;
+          test -f dist/flipmiremote.fap
+
+      - name: Upload FAP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlipMiRemote-v0.1
+          path: dist/flipmiremote.fap
+          if-no-files-found: error
