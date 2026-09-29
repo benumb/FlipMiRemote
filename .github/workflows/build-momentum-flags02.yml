@@ -1,0 +1,58 @@
+name: Build Momentum HID Flags 0x02 Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "momentum-hid-flags-02.patch"
+      - ".github/workflows/build-momentum-flags02.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout FlipMiRemote
+        uses: actions/checkout@v4
+        with:
+          path: FlipMiRemote
+
+      - name: Checkout Momentum firmware
+        uses: actions/checkout@v4
+        with:
+          repository: Next-Flip/Momentum-Firmware
+          ref: dev
+          submodules: recursive
+          path: Momentum-Firmware
+
+      - name: Apply HID Flags 0x02 patch
+        working-directory: Momentum-Firmware
+        run: |
+          git apply "$GITHUB_WORKSPACE/FlipMiRemote/momentum-hid-flags-02.patch"
+          git diff --check
+          git diff -- targets/f7/ble_glue/gap.c
+
+      - name: Add FlipMiRemote app
+        run: |
+          ln -s "$GITHUB_WORKSPACE/FlipMiRemote" "$GITHUB_WORKSPACE/Momentum-Firmware/applications_user/flipmiremote"
+
+      - name: Build patched Momentum updater and FAP
+        working-directory: Momentum-Firmware
+        run: |
+          ./fbt updater_package fap_flipmiremote
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist
+          find Momentum-Firmware/dist -type f -name "*.tgz" -print -exec cp {} dist/ \;
+          find Momentum-Firmware/build -type f -name "flipmiremote.fap" -print -exec cp {} dist/ \;
+          test -f dist/flipmiremote.fap
+          test -n "$(find dist -maxdepth 1 -type f -name '*.tgz' -print -quit)"
+
+      - name: Upload test firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlipMiRemote-Momentum-Flags02-Test
+          path: dist/*
+          if-no-files-found: error
