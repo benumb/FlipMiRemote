@@ -38,17 +38,10 @@ jobs:
           p = Path("targets/f7/ble_glue/gap.c")
           s = p.read_text()
 
-          old = '''    if(status) {
-              FURI_LOG_E(TAG, "set_discoverable failed %d", status);
-          }
-          gap->state = new_state;
-          '''
-
-          new = '''    if(status) {
-              FURI_LOG_E(TAG, "set_discoverable failed %d", status);
-          } else if(
-              (gap->config->adv_service.UUID_Type == UUID_TYPE_16) &&
-              (gap->config->adv_service.Service_UUID_16 == HUMAN_INTERFACE_DEVICE_SERVICE_UUID)) {
+          marker = "    gap->state = new_state;\n"
+          injection = '''    if(!status &&
+             (gap->config->adv_service.UUID_Type == UUID_TYPE_16) &&
+             (gap->config->adv_service.Service_UUID_16 == HUMAN_INTERFACE_DEVICE_SERVICE_UUID)) {
               uint8_t adv_data[31] = {0};
               uint8_t adv_len = 0;
 
@@ -77,13 +70,12 @@ jobs:
                   FURI_LOG_I(TAG, "FlipMi HID adv override active: Flags=0x02");
               }
           }
-          gap->state = new_state;
-          '''
+'''
 
-          if old not in s:
-              raise SystemExit("Target block not found in gap.c")
+          if marker not in s:
+              raise SystemExit("gap state marker not found in gap.c")
 
-          p.write_text(s.replace(old, new, 1))
+          p.write_text(s.replace(marker, injection + marker, 1))
           PY
 
           git diff --check
