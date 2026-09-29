@@ -24,6 +24,10 @@ static void flipmi_profile_get_config(
 
     config->appearance_char = FLIPMI_REMOTE_APPEARANCE;
 
+    /* V0.3: emulate a no-input/no-output remote pairing flow. */
+    config->bonding_mode = true;
+    config->pairing_method = GapPairingNone;
+
     if(params->name && params->name[0] != '\0') {
         strlcpy(config->adv_name + 1, params->name, sizeof(config->adv_name) - 1);
     }
