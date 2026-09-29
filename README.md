@@ -4,28 +4,18 @@
 
 ## Current status
 
-### V0.1 — BLE discovery test
+### V0.2 — Remote Control discovery test
 
-The first milestone is deliberately minimal:
+V0.1 compiled successfully, but the Mi Box 4 did not discover the Flipper.
 
-- start the Flipper Zero as a BLE HID device;
-- advertise it to nearby Bluetooth hosts;
-- verify that a Xiaomi Mi Box 4 can see it;
-- verify that pairing succeeds;
-- preserve the Bluetooth bond between launches.
+V0.2 changes the Bluetooth identity to better match an Android TV remote:
 
-No navigation buttons are implemented yet. They will only be added after BLE discovery/pairing is confirmed on real Mi Box hardware.
+- standard HID over GATT service;
+- Bluetooth GAP appearance **Generic Remote Control (0x0180)** instead of Keyboard;
+- explicit BLE name **FlipMiRemote**;
+- persistent Bluetooth bonding.
 
-## Bluetooth name
-
-Momentum's current public HID profile limits the custom device-name prefix to fewer than 8 characters.
-
-For V0.1:
-
-- app name on Flipper: **FlipMiRemote**
-- BLE advertising name: **FlipMi <Flipper device name>**
-
-On the Mi Box, look for a Bluetooth device beginning with **FlipMi**.
+No navigation buttons are implemented yet. The goal of V0.2 is first to confirm discovery and pairing.
 
 ## Requirement
 
@@ -50,18 +40,21 @@ The resulting `.fap` can be copied to:
 SD:/apps/Bluetooth/
 ```
 
-## V0.1 test
+GitHub Actions also builds the FAP automatically on each push.
 
-1. Launch **FlipMiRemote** on the Flipper.
-2. The screen should show **BLE: Advertising**.
-3. On the Mi Box 4, open Bluetooth / Add accessory.
-4. Look for a device beginning with **FlipMi**.
-5. Pair it.
-6. If successful, the Flipper should display **BLE: Connected**.
+## V0.2 test
+
+1. Install the latest `flipmiremote.fap`.
+2. Launch **FlipMiRemote**.
+3. The Flipper should display **BLE: Advertising**.
+4. On the Mi Box 4, open **Settings → Remotes & accessories → Add accessory**.
+5. Look specifically for **FlipMiRemote**.
+6. Pair it.
+7. If successful, the Flipper should display **BLE: Connected**.
 
 ## Planned next step
 
-After pairing is confirmed:
+After V0.2 pairing is confirmed:
 
 - D-pad: Up / Down / Left / Right
 - OK / Select
