@@ -6,7 +6,7 @@ App(
     stack_size=3 * 1024,
     fap_description="BLE remote compatibility tester for Xiaomi Mi Box / Android TV",
     fap_category="Bluetooth",
-    fap_version=(0, 4),
+    fap_version=(0, 4, 1),
     fap_author="benumb",
     fap_libs=["ble_profile"],
 )
