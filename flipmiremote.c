@@ -1,7 +1,7 @@
 /*
  * FlipMiRemote - BLE HID remote for Xiaomi Mi Box / Android TV
  *
- * V0.2 goal: advertise as a Generic Remote Control rather than a keyboard.
+ * V0.3 goal: Generic Remote Control + Just Works pairing.
  *
  * GPL-2.0
  */
@@ -34,12 +34,12 @@ static void flipmiremote_draw_callback(Canvas* canvas, void* context) {
 
     canvas_clear(canvas);
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 12, "FlipMiRemote V0.2");
+    canvas_draw_str(canvas, 2, 12, "FlipMiRemote V0.3");
 
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 2, 28, app->connected ? "BLE: Connected" : "BLE: Advertising");
     canvas_draw_str(canvas, 2, 40, "Device: FlipMiRemote");
-    canvas_draw_str(canvas, 2, 52, "Type: Remote Control");
+    canvas_draw_str(canvas, 2, 52, "Pairing: Just Works");
     canvas_draw_str(canvas, 2, 63, "BACK = Exit");
 }
 
