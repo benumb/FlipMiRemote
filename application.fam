@@ -1,0 +1,12 @@
+App(
+    appid="flipmiremote",
+    name="FlipMiRemote",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipmiremote_app",
+    stack_size=2 * 1024,
+    fap_description="BLE HID remote test for Xiaomi Mi Box / Android TV",
+    fap_category="Bluetooth",
+    fap_version=(0, 1),
+    fap_author="benumb",
+    fap_libs=["ble_profile"],
+)
