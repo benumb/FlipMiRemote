@@ -1,7 +1,7 @@
 /*
  * FlipMiRemote - BLE remote compatibility tester for Xiaomi Mi Box / Android TV
  *
- * V0.4.1: multi-mode BLE discovery test with single-step menu navigation.
+ * V0.5: Xiaomi-name BLE discovery probes.
  *
  * GPL-2.0
  */
@@ -19,7 +19,7 @@
 
 #define TAG "FlipMiRemote"
 #define HID_BT_KEYS_STORAGE_NAME ".bt_hid.keys"
-#define MODE_COUNT 5
+#define MODE_COUNT 7
 
 typedef struct {
     const char* label;
@@ -77,6 +77,26 @@ static const FlipMiMode modes[MODE_COUNT] = {
             .mac_xor = 0x1005,
         },
     },
+    {
+        .label = "Xiaomi RC / YesNo",
+        .profile = {
+            .name = "Xiaomi RC",
+            .appearance = 0x0180,
+            .bonding = true,
+            .pairing = GapPairingPinCodeVerifyYesNo,
+            .mac_xor = 0x2001,
+        },
+    },
+    {
+        .label = "Xiaomi RC / JustWorks",
+        .profile = {
+            .name = "Xiaomi RC",
+            .appearance = 0x0180,
+            .bonding = true,
+            .pairing = GapPairingNone,
+            .mac_xor = 0x2002,
+        },
+    },
 };
 
 typedef struct {
@@ -97,11 +117,17 @@ static void flipmiremote_draw_callback(Canvas* canvas, void* context) {
 
     if(!app->mode_active) {
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str(canvas, 2, 10, "FlipMiRemote V0.4");
+        canvas_draw_str(canvas, 2, 10, "FlipMiRemote V0.5");
 
         canvas_set_font(canvas, FontSecondary);
-        for(uint8_t i = 0; i < MODE_COUNT; i++) {
-            const uint8_t y = 20 + (i * 9);
+        const uint8_t visible = 5;
+        uint8_t first = 0;
+        if(app->selected_mode >= visible) first = app->selected_mode - visible + 1;
+        if(first + visible > MODE_COUNT) first = MODE_COUNT - visible;
+
+        for(uint8_t row = 0; row < visible; row++) {
+            const uint8_t i = first + row;
+            const uint8_t y = 20 + (row * 9);
             canvas_draw_str(canvas, 2, y, (i == app->selected_mode) ? ">" : " ");
             canvas_draw_str(canvas, 10, y, modes[i].label);
         }
