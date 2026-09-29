@@ -1,0 +1,48 @@
+diff --git a/targets/f7/ble_glue/gap.c b/targets/f7/ble_glue/gap.c
+--- a/targets/f7/ble_glue/gap.c
++++ b/targets/f7/ble_glue/gap.c
+@@ -1,3 +1,4 @@
++/* FlipMiRemote test patch: force HID advertising Flags to 0x02. */
+ #include "gap.h"
+ 
+ #include "app_common.h"
+@@ -352,6 +353,42 @@ static void gap_advertise_start(GapState new_state) {
+     if(status) {
+         FURI_LOG_E(TAG, "set_discoverable failed %d", status);
++    } else if(
++        (gap->config->adv_service.UUID_Type == UUID_TYPE_16) &&
++        (gap->config->adv_service.Service_UUID_16 == HUMAN_INTERFACE_DEVICE_SERVICE_UUID)) {
++        /*
++         * Rebuild HID advertising data with Flags 0x02 instead of the
++         * default 0x06 produced by the stack.
++         */
++        uint8_t adv_data[31] = {0};
++        uint8_t adv_len = 0;
++
++        adv_data[adv_len++] = 2;
++        adv_data[adv_len++] = AD_TYPE_FLAGS;
++        adv_data[adv_len++] = 0x02;
++
++        const uint8_t service_len = gap->service.adv_svc_uuid_len;
++        if((adv_len + 1 + service_len) <= sizeof(adv_data)) {
++            adv_data[adv_len++] = service_len;
++            memcpy(&adv_data[adv_len], gap->service.adv_svc_uuid, service_len);
++            adv_len += service_len;
++        }
++
++        const uint8_t name_len = strlen(gap->service.adv_name);
++        if((adv_len + 1 + name_len) <= sizeof(adv_data)) {
++            adv_data[adv_len++] = name_len;
++            memcpy(&adv_data[adv_len], gap->service.adv_name, name_len);
++            adv_len += name_len;
++        }
++
++        status = hci_le_set_advertising_data(adv_len, adv_data);
++        if(status) {
++            FURI_LOG_E(TAG, "FlipMi HID adv override failed %d", status);
++        } else {
++            FURI_LOG_I(TAG, "FlipMi HID adv override active: Flags=0x02");
++        }
+     }
+     gap->state = new_state;
+     GapEvent event = {.type = GapEventTypeStartAdvertising};
