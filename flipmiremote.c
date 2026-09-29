@@ -1,7 +1,7 @@
 /*
  * FlipMiRemote - BLE remote compatibility tester for Xiaomi Mi Box / Android TV
  *
- * V0.4: multi-mode BLE discovery test.
+ * V0.4.1: multi-mode BLE discovery test with single-step menu navigation.
  *
  * GPL-2.0
  */
@@ -194,7 +194,7 @@ int32_t flipmiremote_app(void* p) {
 
     while(running) {
         if(furi_message_queue_get(app->input_queue, &event, 100) != FuriStatusOk) continue;
-        if((event.type != InputTypePress) && (event.type != InputTypeShort)) continue;
+        if(event.type != InputTypePress) continue;
 
         if(!app->mode_active) {
             if(event.key == InputKeyUp) {
