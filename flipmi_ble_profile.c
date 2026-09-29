@@ -1,7 +1,5 @@
 #include "flipmi_ble_profile.h"
 
-#define FLIPMI_REMOTE_APPEARANCE 0x0180
-
 static FuriHalBleProfileBase* flipmi_profile_start(FuriHalBleProfileParams profile_params) {
     UNUSED(profile_params);
     return ble_profile_hid->start(NULL);
@@ -20,13 +18,16 @@ static void flipmi_profile_get_config(
 
     const FlipMiBleProfileParams* params = profile_params;
 
+    /* Start from Momentum's standard HID-over-GATT profile. */
     ble_profile_hid->get_gap_config(config, NULL);
 
-    config->appearance_char = FLIPMI_REMOTE_APPEARANCE;
+    config->appearance_char = params->appearance;
+    config->bonding_mode = params->bonding;
+    config->pairing_method = params->pairing;
 
-    /* V0.3: emulate a no-input/no-output remote pairing flow. */
-    config->bonding_mode = true;
-    config->pairing_method = GapPairingNone;
+    /* Give every test mode a distinct BLE identity. */
+    config->mac_address[0] ^= params->mac_xor & 0xFF;
+    config->mac_address[1] ^= (params->mac_xor >> 8) & 0xFF;
 
     if(params->name && params->name[0] != '\0') {
         strlcpy(config->adv_name + 1, params->name, sizeof(config->adv_name) - 1);
