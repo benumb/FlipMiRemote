@@ -1,8 +1,7 @@
 /*
  * FlipMiRemote - BLE HID remote for Xiaomi Mi Box / Android TV
  *
- * V0.1 goal: verify that a Mi Box can discover and pair with the
- * Flipper Zero when it advertises as a BLE HID device.
+ * V0.2 goal: advertise as a Generic Remote Control rather than a keyboard.
  *
  * GPL-2.0
  */
@@ -10,12 +9,13 @@
 #include <furi.h>
 #include <furi_hal.h>
 #include <furi_hal_bt.h>
-#include <extra_profiles/hid_profile.h>
 #include <bt/bt_service/bt.h>
 #include <gui/gui.h>
 #include <gui/view_port.h>
 #include <input/input.h>
 #include <storage/storage.h>
+
+#include "flipmi_ble_profile.h"
 
 #define TAG "FlipMiRemote"
 #define HID_BT_KEYS_STORAGE_NAME ".bt_hid.keys"
@@ -34,12 +34,12 @@ static void flipmiremote_draw_callback(Canvas* canvas, void* context) {
 
     canvas_clear(canvas);
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 12, "FlipMiRemote V0.1");
+    canvas_draw_str(canvas, 2, 12, "FlipMiRemote V0.2");
 
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 2, 28, app->connected ? "BLE: Connected" : "BLE: Advertising");
-    canvas_draw_str(canvas, 2, 40, "Look for: FlipMi ...");
-    canvas_draw_str(canvas, 2, 52, "on Mi Box Bluetooth");
+    canvas_draw_str(canvas, 2, 40, "Device: FlipMiRemote");
+    canvas_draw_str(canvas, 2, 52, "Type: Remote Control");
     canvas_draw_str(canvas, 2, 63, "BACK = Exit");
 }
 
@@ -69,18 +69,8 @@ int32_t flipmiremote_app(void* p) {
     view_port_input_callback_set(app->view_port, flipmiremote_input_callback, app);
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
 
-    /*
-     * Momentum BLE HID profile.
-     *
-     * The firmware currently limits device_name_prefix to < 8 chars.
-     * The advertised name will therefore be:
-     *     "FlipMi <Flipper device name>"
-     *
-     * The application itself remains named FlipMiRemote.
-     */
-    const BleProfileHidParams hid_params = {
-        .device_name_prefix = "FlipMi",
-        .mac_xor = 0x4D52,
+    const FlipMiBleProfileParams profile_params = {
+        .name = "FlipMiRemote",
     };
 
     bt_disconnect(app->bt);
@@ -88,13 +78,15 @@ int32_t flipmiremote_app(void* p) {
 
     bt_keys_storage_set_storage_path(app->bt, APP_DATA_PATH(HID_BT_KEYS_STORAGE_NAME));
 
-    app->ble_hid_profile = bt_profile_start(app->bt, ble_profile_hid, (void*)&hid_params);
+    app->ble_hid_profile =
+        bt_profile_start(app->bt, flipmi_ble_profile, (void*)&profile_params);
+
     if(!app->ble_hid_profile) {
-        FURI_LOG_E(TAG, "Failed to start BLE HID profile");
+        FURI_LOG_E(TAG, "Failed to start BLE HID remote profile");
     } else {
         bt_set_status_changed_callback(app->bt, flipmiremote_bt_status_callback, app);
         furi_hal_bt_start_advertising();
-        FURI_LOG_I(TAG, "BLE HID advertising started");
+        FURI_LOG_I(TAG, "BLE remote advertising started");
     }
 
     view_port_update(app->view_port);
