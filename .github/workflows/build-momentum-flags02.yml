@@ -5,8 +5,11 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "momentum-hid-flags-02.patch"
       - ".github/workflows/build-momentum-flags02.yml"
+      - "flipmiremote.c"
+      - "flipmi_ble_profile.c"
+      - "flipmi_ble_profile.h"
+      - "application.fam"
 
 jobs:
   build:
@@ -26,10 +29,63 @@ jobs:
           submodules: recursive
           path: Momentum-Firmware
 
-      - name: Apply HID Flags 0x02 patch
+      - name: Force HID advertising Flags 0x02
         working-directory: Momentum-Firmware
         run: |
-          git apply "$GITHUB_WORKSPACE/FlipMiRemote/momentum-hid-flags-02.patch"
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("targets/f7/ble_glue/gap.c")
+          s = p.read_text()
+
+          old = '''    if(status) {
+              FURI_LOG_E(TAG, "set_discoverable failed %d", status);
+          }
+          gap->state = new_state;
+          '''
+
+          new = '''    if(status) {
+              FURI_LOG_E(TAG, "set_discoverable failed %d", status);
+          } else if(
+              (gap->config->adv_service.UUID_Type == UUID_TYPE_16) &&
+              (gap->config->adv_service.Service_UUID_16 == HUMAN_INTERFACE_DEVICE_SERVICE_UUID)) {
+              uint8_t adv_data[31] = {0};
+              uint8_t adv_len = 0;
+
+              adv_data[adv_len++] = 2;
+              adv_data[adv_len++] = AD_TYPE_FLAGS;
+              adv_data[adv_len++] = 0x02;
+
+              const uint8_t service_len = gap->service.adv_svc_uuid_len;
+              if((adv_len + 1 + service_len) <= sizeof(adv_data)) {
+                  adv_data[adv_len++] = service_len;
+                  memcpy(&adv_data[adv_len], gap->service.adv_svc_uuid, service_len);
+                  adv_len += service_len;
+              }
+
+              const uint8_t name_len = strlen(gap->service.adv_name);
+              if((adv_len + 1 + name_len) <= sizeof(adv_data)) {
+                  adv_data[adv_len++] = name_len;
+                  memcpy(&adv_data[adv_len], gap->service.adv_name, name_len);
+                  adv_len += name_len;
+              }
+
+              status = hci_le_set_advertising_data(adv_len, adv_data);
+              if(status) {
+                  FURI_LOG_E(TAG, "FlipMi HID adv override failed %d", status);
+              } else {
+                  FURI_LOG_I(TAG, "FlipMi HID adv override active: Flags=0x02");
+              }
+          }
+          gap->state = new_state;
+          '''
+
+          if old not in s:
+              raise SystemExit("Target block not found in gap.c")
+
+          p.write_text(s.replace(old, new, 1))
+          PY
+
           git diff --check
           git diff -- targets/f7/ble_glue/gap.c
 
