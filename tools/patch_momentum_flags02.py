@@ -24,14 +24,14 @@ injection = r'''    if(!status &&
         adv_data[adv_len++] = 0x02;
 
         const uint8_t service_len = gap->service.adv_svc_uuid_len;
-        if((adv_len + 1 + service_len) <= sizeof(adv_data)) {
+        if((size_t)(adv_len + 1 + service_len) <= sizeof(adv_data)) {
             adv_data[adv_len++] = service_len;
             memcpy(&adv_data[adv_len], gap->service.adv_svc_uuid, service_len);
             adv_len += service_len;
         }
 
         const uint8_t name_len = strlen(gap->service.adv_name);
-        if((adv_len + 1 + name_len) <= sizeof(adv_data)) {
+        if((size_t)(adv_len + 1 + name_len) <= sizeof(adv_data)) {
             adv_data[adv_len++] = name_len;
             memcpy(&adv_data[adv_len], gap->service.adv_name, name_len);
             adv_len += name_len;
