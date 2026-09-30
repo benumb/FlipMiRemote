@@ -1,4 +1,4 @@
-name: Build Momentum HID Flags 0x05 Minimal
+name: Build Momentum HID Flags 0x05 DFU Only
 
 on:
   workflow_dispatch:
@@ -40,19 +40,19 @@ jobs:
       - name: Build patched Momentum updater and FAP
         working-directory: Momentum-Firmware
         run: |
-          ./fbt updater_package fap_flipmiremote
+          ./fbt updater_minpackage fap_flipmiremote
 
       - name: Collect artifacts
         run: |
           mkdir -p dist
-          find Momentum-Firmware/dist -type f -name "*.tgz" -print -exec cp {} dist/ \;
+          find Momentum-Firmware/dist -type f \( -name "*.tgz" -o -name "*.dfu" \) -print -exec cp {} dist/ \;
           find Momentum-Firmware/build -type f -name "flipmiremote.fap" -print -exec cp {} dist/ \;
           test -f dist/flipmiremote.fap
-          test -n "$(find dist -maxdepth 1 -type f -name '*.tgz' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -type f \( -name '*.tgz' -o -name '*.dfu' \) -print -quit)"
 
       - name: Upload test firmware
         uses: actions/upload-artifact@v4
         with:
-          name: FlipMiRemote-Momentum-Flags05-Minimal
+          name: FlipMiRemote-Momentum-Flags05-DFUOnly
           path: dist/*
           if-no-files-found: error
