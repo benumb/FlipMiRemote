@@ -21,7 +21,7 @@ injection = r'''    if(!status &&
 
         adv_data[adv_len++] = 2;
         adv_data[adv_len++] = AD_TYPE_FLAGS;
-        adv_data[adv_len++] = 0x02;
+        adv_data[adv_len++] = 0x05;
 
         const uint8_t service_len = gap->service.adv_svc_uuid_len;
         if((size_t)(adv_len + 1 + service_len) <= sizeof(adv_data)) {
@@ -41,11 +41,11 @@ injection = r'''    if(!status &&
         if(status) {
             FURI_LOG_E(TAG, "FlipMi HID adv override failed %d", status);
         } else {
-            FURI_LOG_I(TAG, "FlipMi HID adv override active: Flags=0x02");
+            FURI_LOG_I(TAG, "FlipMi HID adv override active: Flags=0x05");
         }
     }
 '''
 
 s = s[:pos] + injection + s[pos:]
 p.write_text(s)
-print("Injected HID Flags 0x02 test override into", p)
+print("Injected HID Flags 0x05 test override into", p)
