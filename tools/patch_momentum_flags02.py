@@ -47,5 +47,30 @@ injection = r'''    if(!status &&
 '''
 
 s = s[:pos] + injection + s[pos:]
+
+old_pairing = """    } else if(gap->config->pairing_method == GapPairingNone) {
+        // "Just works" pairing method (iOS accepts it, it seems Android and Linux don't)
+        auth_req_mitm_mode = MITM_PROTECTION_NOT_REQUIRED;
+        auth_req_use_fixed_pin = USE_FIXED_PIN_FOR_PAIRING_ALLOWED;
+        // If "just works" isn't supported, we want the numeric comparaison method
+        aci_gap_set_io_capability(IO_CAP_DISPLAY_YES_NO);
+        keypress_supported = true;
+    }
+"""
+
+new_pairing = """    } else if(gap->config->pairing_method == GapPairingNone) {
+        // True Just Works for remote controls: no display, no keyboard, no MITM.
+        // Bluetooth Core IO capability value 0x03 = NoInputNoOutput.
+        auth_req_mitm_mode = MITM_PROTECTION_NOT_REQUIRED;
+        auth_req_use_fixed_pin = USE_FIXED_PIN_FOR_PAIRING_FORBIDDEN;
+        aci_gap_set_io_capability(0x03);
+        keypress_supported = false;
+    }
+"""
+
+if old_pairing not in s:
+    raise SystemExit("GapPairingNone block not found")
+s = s.replace(old_pairing, new_pairing, 1)
+
 p.write_text(s)
-print("Injected HID Flags 0x05 test override into", p)
+print("Injected Xiaomi HID Flags 0x05 + true Just Works pairing into", p)
